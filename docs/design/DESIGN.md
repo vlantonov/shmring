@@ -65,7 +65,7 @@ graph TD
 
 ```
 shmring/
-  CMakeLists.txt          # root; FetchContent for Catch2 and Google Benchmark
+  CMakeLists.txt          # root; Conan 2 for Catch2 and Google Benchmark
   VERSION                 # 0.1.0
   include/shmring/
     ring_buffer.hpp       # ShmRingBuffer<ElementSize, Capacity> — header-only
@@ -436,16 +436,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-# ── FetchContent: Catch2 v3 and Google Benchmark ─────────────────────────────
-include(FetchContent)
-FetchContent_Declare(Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.x.x)   # pin to latest v3 release tag at implementation time
-FetchContent_Declare(benchmark
-    GIT_REPOSITORY https://github.com/google/benchmark.git
-    GIT_TAG        v1.x.x)   # pin to latest stable release tag at implementation time
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(Catch2 benchmark)
+# ── Conan 2: Catch2 v3 and Google Benchmark ──────────────────────────────────
+find_package(Catch2 REQUIRED)
+find_package(benchmark REQUIRED)
 
 # ── Header-only interface library ────────────────────────────────────────────
 add_library(shmring_headers INTERFACE)
@@ -611,18 +604,21 @@ ctest --test-dir build --output-on-failure
 
 ```bash
 # Prerequisites (Debian/Ubuntu)
-sudo apt-get install -y cmake g++ libpcap-dev
+sudo apt-get install -y cmake g++ libpcap-dev pip
+pip install conan
 
-# Configure (Release; Debug also supported)
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+# Install dependencies via Conan 2
+conan install . --output-folder=build --build=missing -s build_type=Release
 
-# Build all targets
-cmake --build build -j
+# Configure and build
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
+      -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
 
-# Run correctness tests
+# Run tests
 ctest --test-dir build --output-on-failure
 
-# Run benchmarks (separate from CTest)
+# Run benchmarks
 ./build/benchmarks/shmring_bench --benchmark_format=json
 ```
 
@@ -640,7 +636,7 @@ ctest --test-dir build --output-on-failure
 | D-06 | `ShmRegion` as a separate RAII class | POSIX calls inlined in `ShmRingBuffer` | Separation of concerns; `ShmRegion` is independently testable and allows future reuse |
 | D-07 | Producer-first startup; consumer retries `shm_open` | Rendezvous segment or named semaphore | Simpler for an SPSC demo; a rendezvous mechanism adds complexity not required by the SRS |
 | D-08 | `PRODUCER_DONE` communicated via `flags` bit in `ShmHeader` | Sentinel packet with a magic payload | Clean separation of control plane from data plane; no element-size-specific sentinel value required |
-| D-09 | `FetchContent` for Catch2 and Google Benchmark; system package for libpcap | Conan 2 for all dependencies | Reproducible zero-config build for test/bench frameworks; libpcap has no ConanCenter package suitable for all CI setups and is universally available as a system package |
+| D-09 | Conan 2 for Catch2 and Google Benchmark; system package for libpcap | FetchContent for test/bench dependencies | Pinned, reproducible dependency resolution via ConanCenter; libpcap has no ConanCenter package suitable for all CI setups and is universally available as a system package |
 | D-10 | `relaxed` on producer's self-load of `head` and consumer's self-load of `tail` | `acquire` on all atomic loads | Correct per C++ memory model: self-reads need no cross-process fence; reduces unnecessary barriers on weakly-ordered CPUs |
 
 ---

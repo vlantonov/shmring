@@ -174,7 +174,7 @@ All source files shall compile cleanly under `-std=c++20` with warnings enabled 
 
 ### NFR-05 — Build Reproducibility
 
-A clean `cmake --build` from an empty build directory shall succeed without requiring any manual steps beyond installing the listed dependencies. All third-party dependencies (Catch2, Google Benchmark, libpcap) shall be resolved via CMake's `FetchContent` or a documented system-package prerequisite.
+A clean `cmake --build` from an empty build directory shall succeed without requiring any manual steps beyond installing the listed dependencies. All third-party dependencies (Catch2, Google Benchmark) shall be resolved via Conan 2 package manager; libpcap is resolved as a documented system-package prerequisite.
 
 ---
 
@@ -187,7 +187,7 @@ A clean `cmake --build` from an empty build directory shall succeed without requ
 | **HC-03** | IPC backing: POSIX `shm_open` + `mmap`; Linux only |
 | **HC-04** | Unit test framework: Catch2 (v3 preferred) |
 | **HC-05** | Benchmark framework: Google Benchmark |
-| **HC-06** | Build system: CMake ≥ 3.20 |
+| **HC-06** | Build system: CMake ≥ 3.20 + Conan 2 package manager |
 | **HC-07** | The ring buffer memory-ordering strategy must be derived from first principles against the C++ memory model and the rationale documented inline |
 
 ---
