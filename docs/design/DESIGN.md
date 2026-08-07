@@ -604,14 +604,18 @@ ctest --test-dir build --output-on-failure
 
 ```bash
 # Prerequisites (Debian/Ubuntu)
-sudo apt-get install -y cmake g++ libpcap-dev pip
+sudo apt-get install -y cmake g++ libpcap-dev python3-pip
 pip install conan
 
-# Install dependencies via Conan 2
-conan install . --output-folder=build --build=missing -s build_type=Release
+# Detect your toolchain (first-time only)
+conan profile detect
+
+# Install dependencies via Conan 2 (copies packages into build/ for portability)
+conan install . --output-folder=build --build=missing --deployer=full_deploy
 
 # Configure and build
-cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
+cmake -S . -B build \
+      -DCMAKE_TOOLCHAIN_FILE=build/build/Release/generators/conan_toolchain.cmake \
       -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
 

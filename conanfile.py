@@ -8,7 +8,7 @@ class ShmringConan(ConanFile):
 
     def requirements(self):
         self.requires("catch2/3.8.1")
-        self.requires("benchmark/1.9.2")
+        self.requires("benchmark/1.9.5")
 
     def layout(self):
         cmake_layout(self)

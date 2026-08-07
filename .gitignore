@@ -48,6 +48,9 @@ build-*/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
+
+# Conan 2 generated files (machine-specific)
+CMakeUserPresets.json
 Makefile
 install_manifest.txt
 compile_commands.json
