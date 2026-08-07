@@ -94,7 +94,7 @@ All structs are POD / standard-layout. No `std::` types, no vtables, no pointers
 ```cpp
 // ── ShmHeader: 64 bytes, one cache line ─────────────────────────────────────
 struct ShmHeader {
-    uint32_t magic;        // 0x53484D52 = "SHMR"
+    uint32_t magic;        // 0x534D5246 = "SMRF"
     uint32_t version;      // layout version; currently 1
     uint32_t element_size; // max payload bytes per slot (== ElementSize template param)
     uint32_t capacity;     // number of slots (== Capacity template param)
@@ -129,7 +129,7 @@ Offset 192 : data[]              (sizeof(uint32_t) + ElementSize) × Capacity by
 
 | Field | Offset (bytes) | Size (bytes) | Notes |
 |-------|---------------|--------------|-------|
-| `magic` | 0 | 4 | `0x53484D52` |
+| `magic` | 0 | 4 | `0x534D5246` |
 | `version` | 4 | 4 | `1` |
 | `element_size` | 8 | 4 | compile-time `ElementSize` |
 | `capacity` | 12 | 4 | compile-time `Capacity` |
@@ -231,7 +231,7 @@ private:
 
     static constexpr std::size_t kSlotSize = sizeof(uint32_t) + ElementSize;
     static constexpr std::size_t kMask     = Capacity - 1;
-    static constexpr uint32_t    kMagic    = 0x53484D52u;
+    static constexpr uint32_t    kMagic    = 0x534D5246u;  // "SMRF"
     static constexpr uint32_t    kVersion  = 1u;
     static constexpr uint32_t    kFlagDone = 0x1u;
 };
@@ -361,7 +361,7 @@ shmring_demo_consumer                # Owner = false
 │  (magic, version,   │                                     │  to 5 s timeout     │
 │   element_size,     │                                     │                     │
 │   capacity,flags=0) │  3. magic visible (atomic_ref) ──> │  3. spin on magic   │
-│                     │                                     │  until == SHMR_MAGIC│
+│                     │                                     │  until == 0x534D5246│
 │  4. open pcap       │                                     │  (acquire, 1 s max) │
 │  push() packets ────│──── SHM data ───────────────────── │──> pop() packets    │
 │                     │                                     │                     │
@@ -524,7 +524,7 @@ target_link_libraries(shmring_bench PRIVATE
 | `DataIntegrityRoundTrip` | FR-02.3 | bytes pushed equal bytes popped (`std::memcmp`) |
 | `LengthFieldRoundTrip` | FR-02.3 | `out_len` from `pop()` equals `len` passed to `push()` |
 | `CapacityBoundaryEmpty` | FR-02.4 | `Capacity` push/pop pairs leave the buffer empty; next `pop()` returns `false` |
-| `ShmHeaderMagicValid` | NFR-03 | owner construction writes `magic == 0x53484D52` |
+| `ShmHeaderMagicValid` | NFR-03 | owner construction writes `magic == 0x534D5246` |
 | `ShmHeaderVersionValid` | NFR-03 | owner construction writes `version == 1` |
 | `ShmHeaderFieldsMatchTemplate` | NFR-03 | `element_size == ElementSize`, `capacity == Capacity` |
 | `CacheLineAlignmentHead` | NFR-02 | `offsetof(head_.value)` from base of mapped region is `64` |

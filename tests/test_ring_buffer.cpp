@@ -247,3 +247,60 @@ TEST_CASE("non-owner throws when segment is absent") {
     // No owner created — open must throw std::system_error (ENOENT).
     REQUIRE_THROWS_AS(Ring8(name, false), std::system_error);
 }
+
+// ── Multi-process SPSC ring buffer test (AC-05) ───────────────────────────────
+
+TEST_CASE("multi-process SPSC push/pop via ring buffer") {
+    // Parent = owner + consumer; child = non-owner + producer.
+    // Verifies that push()/pop() work correctly across a fork() boundary,
+    // exercising the full acquire/release memory-ordering chain in SHM.
+    constexpr int kN = 1024;
+    std::string name = make_shm_name();
+
+    // Owner (parent) creates the ring before forking so the child can attach.
+    Ring1k owner(name, true);
+
+    pid_t pid = ::fork();
+    REQUIRE(pid >= 0);
+
+    if (pid == 0) {
+        // Child: non-owner producer — pushes kN elements with known payload.
+        try {
+            Ring1k child_ring(name, false);
+            char buf[64] = {};
+            for (int i = 0; i < kN; ++i) {
+                std::memcpy(buf, &i, sizeof(int));
+                while (!child_ring.push(buf, sizeof(int)))
+                    ; // busy-spin; acceptable outside hot path
+            }
+        } catch (...) {
+            _exit(1);
+        }
+        _exit(0);
+    }
+
+    // Parent: owner consumer — pops kN elements and validates each.
+    char        buf[64] = {};
+    std::size_t len     = 0;
+    int         received = 0;
+    bool        data_ok  = true;
+
+    while (received < kN) {
+        if (owner.pop(buf, len)) {
+            int val = 0;
+            std::memcpy(&val, buf, sizeof(int));
+            if (val != received || len != sizeof(int))
+                data_ok = false;
+            ++received;
+        }
+    }
+
+    int  status = 0;
+    pid_t waited;
+    do { waited = ::waitpid(pid, &status, 0); } while (waited == -1 && errno == EINTR);
+    REQUIRE(waited == pid);
+    REQUIRE(WIFEXITED(status));
+    REQUIRE(WEXITSTATUS(status) == 0);
+    REQUIRE(data_ok);
+    REQUIRE(received == kN);
+}
